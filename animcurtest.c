@@ -73,6 +73,8 @@ int main(int argc, char** argv)
     XDefineCursor(dpy, win, ac1);
     XDefineCursor(dpy, win, ac1);
 
+    XWarpPointer(dpy, None, win, 0, 0, 0, 0, 100, 100);
+
     while(1)
     {
         XEvent e;

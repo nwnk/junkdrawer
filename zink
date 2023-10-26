@@ -1,0 +1,54 @@
+#!/bin/sh
+
+export __GLX_VENDOR_LIBRARY_NAME=mesa
+export __EGL_VENDOR_LIBRARY_FILENAMES=mesa
+export MESA_LOADER_DRIVER_OVERRIDE=zink
+
+b=${HOME}/git/zink/build
+
+self=$(basename "$0")
+if [ "$self" = "zink" ]; then
+    self="$1"
+    shift
+fi
+
+export RUSTICL_ENABLE=$self
+
+# normal is zink+radv, but you can ask for:
+case "$self" in
+    radeonsi)
+        unset MESA_LOADER_DRIVER_OVERRIDE
+        ;;
+    iris)
+        unset MESA_LOADER_DRIVER_OVERRIDE
+        export DRI_PRIME=1
+        ;;
+    radv)
+        export RUSTICL_ENABLE=zink
+        # this doesn't seem to help, or hurt...
+        # VK_ICD_FILENAMES=$b/src/amd/vulkan/radeon_devenv_icd.x86_64.json
+        ;;
+    anv)
+        export RUSTICL_ENABLE=zink
+        VK_ICD_FILENAMES=$b/src/intel/vulkan/intel_devenv_icd.x86_64.json
+        ;;
+    lvp)
+        VK_ICD_FILENAMES=$b/src/gallium/targets/lavapipe/lvp_devenv_icd.x86_64.json
+        export LIBGL_ALWAYS_SOFTWARE=1
+        # export LP_CL=1 # doesn't work...
+        ;;
+    lp)
+        unset MESA_LOADER_DRIVER_OVERRIDE
+        export LIBGL_ALWAYS_SOFTWARE=1
+        ;;
+    *)
+        echo "usage: zink [anv|iris|radv|radeonsi|lp|lvp] ..."
+        exit 1
+        ;;
+esac
+
+if [ -v VK_ICD_FILENAMES ]; then
+    exec meson devenv -C "$b" env VK_ICD_FILENAMES=${VK_ICD_FILENAMES} "$@"
+else
+    exec meson devenv -C "$b" "$@"
+fi
